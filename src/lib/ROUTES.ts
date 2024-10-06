@@ -11,22 +11,44 @@
 const PAGES = {
   "/": `/`,
   "/sign-in": `/sign-in`,
-  "/sign-up": `/sign-up`
+  "/sign-up": `/sign-up`,
+  "/[handle]": (params: { handle: (string | number) }) => {
+    return `/${params.handle}`
+  },
+  "/[handle]/[postId]": (params: { handle: (string | number), postId: (string | number) }) => {
+    return `/${params.handle}/${params.postId}`
+  },
+  "/settings": `/settings`,
+  "/settings/interface": `/settings/interface`,
+  "/settings/privacy": `/settings/privacy`
 }
 
 /**
  * SERVERS
  */
 const SERVERS = {
-  "POST /sign-out": `/sign-out`
+  "POST /api/v1/post/[id]/delete": (params: { id: (string | number) }) => {
+    return `/api/v1/post/${params.id}/delete`
+  },
+  "POST /api/v1/post/[id]/like": (params: { id: (string | number) }) => {
+    return `/api/v1/post/${params.id}/like`
+  },
+  "POST /api/v1/post/[id]/unlike": (params: { id: (string | number) }) => {
+    return `/api/v1/post/${params.id}/unlike`
+  }
 }
 
 /**
  * ACTIONS
  */
 const ACTIONS = {
-  "default /sign-in": `/sign-in`,
-  "default /sign-up": `/sign-up`
+  "signIn /actions/v1/auth": `/actions/v1/auth?/signIn`,
+  "signUp /actions/v1/auth": `/actions/v1/auth?/signUp`,
+  "signOut /actions/v1/auth": `/actions/v1/auth?/signOut`,
+  "setPost /actions/v1/post": `/actions/v1/post?/setPost`,
+  "setProfile /actions/v1/profile": `/actions/v1/profile?/setProfile`,
+  "setPrivacySettings /actions/v1/settings": `/actions/v1/settings?/setPrivacySettings`,
+  "setInterfaceSettings /actions/v1/settings": `/actions/v1/settings?/setInterfaceSettings`
 }
 
 /**
@@ -133,9 +155,9 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/': never, '/sign-in': never, '/sign-up': never }
-  SERVERS: { 'POST /sign-out': never }
-  ACTIONS: { 'default /sign-in': never, 'default /sign-up': never }
+  PAGES: { '/': never, '/sign-in': never, '/sign-up': never, '/[handle]': 'handle', '/[handle]/[postId]': 'handle' | 'postId', '/settings': never, '/settings/interface': never, '/settings/privacy': never }
+  SERVERS: { 'POST /api/v1/post/[id]/delete': 'id', 'POST /api/v1/post/[id]/like': 'id', 'POST /api/v1/post/[id]/unlike': 'id' }
+  ACTIONS: { 'signIn /actions/v1/auth': never, 'signUp /actions/v1/auth': never, 'signOut /actions/v1/auth': never, 'setPost /actions/v1/post': never, 'setProfile /actions/v1/profile': never, 'setPrivacySettings /actions/v1/settings': never, 'setInterfaceSettings /actions/v1/settings': never }
   LINKS: Record<string, never>
-  Params: Record<string, never>
+  Params: { handle: never, postId: never, id: never }
 }

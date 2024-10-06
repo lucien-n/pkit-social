@@ -1,10 +1,11 @@
 import { z } from 'zod';
-import { passwordField, emailField, usernameField } from './fields';
+import { passwordField, emailField, displayNameField, handleField } from './fields';
 
 export const signUpSchema = z.object({
 	password: passwordField,
 	email: emailField,
-	username: usernameField
+	displayName: displayNameField,
+	handle: handleField
 });
 
 export type SignUpSchema = typeof signUpSchema;

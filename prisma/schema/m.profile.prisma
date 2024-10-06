@@ -1,0 +1,15 @@
+model Profile {
+    id String @id
+
+    handle                String                 @unique
+    displayName           String                 @unique
+    avatarBackgroundColor AvatarBackgroundColor?
+    role                  Role                   @default(USER)
+
+    user  User   @relation(references: [id], fields: [id], onDelete: Cascade)
+    posts Post[]
+
+    interfaceSettings InterfaceSettings?
+    privacySettings   PrivacySettings?
+    likes             Like[]
+}
