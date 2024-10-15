@@ -1,12 +1,16 @@
 import { defineConfig } from 'vitest/config';
-import type { KIT_ROUTES } from '$lib/ROUTES';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { kitRoutes } from 'vite-plugin-kit-routes';
 
 export default defineConfig({
-	plugins: [kitRoutes<KIT_ROUTES>(), sveltekit()],
+	plugins: [kitRoutes(), sveltekit()],
 	test: {
-		include: ['tests/**/*.test.ts']
+		include: ['tests/src/**/*.test.ts'],
+		exclude: ['src/lib/ROUTES.ts'],
+		coverage: {
+			all: false,
+			exclude: ['src/lib/ROUTES.ts', 'tests/']
+		}
 	},
 	resolve: {
 		alias: {

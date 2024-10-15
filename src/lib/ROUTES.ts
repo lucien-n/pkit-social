@@ -12,11 +12,12 @@ const PAGES = {
   "/": `/`,
   "/sign-in": `/sign-in`,
   "/sign-up": `/sign-up`,
+  "/verify": `/verify`,
   "/[handle]": (params: { handle: (string | number) }) => {
     return `/${params.handle}`
   },
-  "/[handle]/[postId]": (params: { handle: (string | number), postId: (string | number) }) => {
-    return `/${params.handle}/${params.postId}`
+  "/[handle]/[twiddleId]": (params: { handle: (string | number), twiddleId: (string | number) }) => {
+    return `/${params.handle}/${params.twiddleId}`
   },
   "/settings": `/settings`,
   "/settings/interface": `/settings/interface`,
@@ -27,14 +28,14 @@ const PAGES = {
  * SERVERS
  */
 const SERVERS = {
-  "POST /api/v1/post/[id]/delete": (params: { id: (string | number) }) => {
-    return `/api/v1/post/${params.id}/delete`
+  "POST /api/v1/twiddle/[id]/delete": (params: { id: (string | number) }) => {
+    return `/api/v1/twiddle/${params.id}/delete`
   },
-  "POST /api/v1/post/[id]/like": (params: { id: (string | number) }) => {
-    return `/api/v1/post/${params.id}/like`
+  "POST /api/v1/twiddle/[id]/like": (params: { id: (string | number) }) => {
+    return `/api/v1/twiddle/${params.id}/like`
   },
-  "POST /api/v1/post/[id]/unlike": (params: { id: (string | number) }) => {
-    return `/api/v1/post/${params.id}/unlike`
+  "POST /api/v1/twiddle/[id]/unlike": (params: { id: (string | number) }) => {
+    return `/api/v1/twiddle/${params.id}/unlike`
   }
 }
 
@@ -45,10 +46,13 @@ const ACTIONS = {
   "signIn /actions/v1/auth": `/actions/v1/auth?/signIn`,
   "signUp /actions/v1/auth": `/actions/v1/auth?/signUp`,
   "signOut /actions/v1/auth": `/actions/v1/auth?/signOut`,
-  "setPost /actions/v1/post": `/actions/v1/post?/setPost`,
+  "otpVerification /actions/v1/auth": `/actions/v1/auth?/otpVerification`,
+  "sendOtpEmail /actions/v1/auth": `/actions/v1/auth?/sendOtpEmail`,
+  "deleteAccount /actions/v1/auth": `/actions/v1/auth?/deleteAccount`,
   "setProfile /actions/v1/profile": `/actions/v1/profile?/setProfile`,
   "setPrivacySettings /actions/v1/settings": `/actions/v1/settings?/setPrivacySettings`,
-  "setInterfaceSettings /actions/v1/settings": `/actions/v1/settings?/setInterfaceSettings`
+  "setInterfaceSettings /actions/v1/settings": `/actions/v1/settings?/setInterfaceSettings`,
+  "setTwiddle /actions/v1/twiddle": `/actions/v1/twiddle?/setTwiddle`
 }
 
 /**
@@ -155,9 +159,9 @@ export function route<T extends keyof AllTypes>(key: T, ...params: any[]): strin
 * ```
 */
 export type KIT_ROUTES = {
-  PAGES: { '/': never, '/sign-in': never, '/sign-up': never, '/[handle]': 'handle', '/[handle]/[postId]': 'handle' | 'postId', '/settings': never, '/settings/interface': never, '/settings/privacy': never }
-  SERVERS: { 'POST /api/v1/post/[id]/delete': 'id', 'POST /api/v1/post/[id]/like': 'id', 'POST /api/v1/post/[id]/unlike': 'id' }
-  ACTIONS: { 'signIn /actions/v1/auth': never, 'signUp /actions/v1/auth': never, 'signOut /actions/v1/auth': never, 'setPost /actions/v1/post': never, 'setProfile /actions/v1/profile': never, 'setPrivacySettings /actions/v1/settings': never, 'setInterfaceSettings /actions/v1/settings': never }
+  PAGES: { '/': never, '/sign-in': never, '/sign-up': never, '/verify': never, '/[handle]': 'handle', '/[handle]/[twiddleId]': 'handle' | 'twiddleId', '/settings': never, '/settings/interface': never, '/settings/privacy': never }
+  SERVERS: { 'POST /api/v1/twiddle/[id]/delete': 'id', 'POST /api/v1/twiddle/[id]/like': 'id', 'POST /api/v1/twiddle/[id]/unlike': 'id' }
+  ACTIONS: { 'signIn /actions/v1/auth': never, 'signUp /actions/v1/auth': never, 'signOut /actions/v1/auth': never, 'otpVerification /actions/v1/auth': never, 'sendOtpEmail /actions/v1/auth': never, 'deleteAccount /actions/v1/auth': never, 'setProfile /actions/v1/profile': never, 'setPrivacySettings /actions/v1/settings': never, 'setInterfaceSettings /actions/v1/settings': never, 'setTwiddle /actions/v1/twiddle': never }
   LINKS: Record<string, never>
-  Params: { handle: never, postId: never, id: never }
+  Params: { handle: never, twiddleId: never, id: never }
 }

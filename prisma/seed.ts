@@ -1,27 +1,40 @@
-import { AvatarBackgroundColor, Post, PrismaClient, Role, User } from '@prisma/client';
+import { AvatarBackgroundColor, PrismaClient, Role, Twiddle, User } from '@prisma/client';
 import { generateIdFromEntropySize } from 'lucia';
 import mock from './mock.json';
 import { nanoid } from 'nanoid';
 
 const getRandomInArray = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-export const getRandomInEnum = <T>(anEnum: T): T[keyof T] => {
+const getRandomInEnum = <T>(anEnum: T): T[keyof T] => {
 	const enumValues = Object.values(anEnum as object) as unknown as T[keyof T][];
 	return enumValues[Math.floor(Math.random() * enumValues.length)];
 };
 
-const emptyTables = async (db: PrismaClient) => {
-	const deletes = [
+const getRandomDateBetweenNowAndThen = (thenDays: number = 14): Date => {
+	const date = new Date();
+	date.setDate(-Math.floor(Math.random() * thenDays) + date.getDate()); // past n days
+	date.setHours(Math.floor(Math.random() * 24)); // randomize hours
+	date.setMinutes(Math.floor(Math.random() * 60)); // randomize minutes
+
+	return date;
+};
+
+const emptyTables = async (db: PrismaClient) =>
+	db.$transaction([
 		db.like.deleteMany(),
-		db.post.deleteMany(),
+		db.twiddle.deleteMany(),
 		db.interfaceSettings.deleteMany(),
 		db.privacySettings.deleteMany(),
 		db.profile.deleteMany(),
 		db.session.deleteMany(),
-		db.user.deleteMany()
-	];
+		db.user.deleteMany(),
+		db.handleBlacklist.deleteMany()
+	]);
 
-	await db.$transaction(deletes);
+const seedHandleBlacklist = async (db: PrismaClient): Promise<void> => {
+	const baseBlacklist: string[] = ['settings', 'sign-in', 'sign-up', 'verify', 'actions', 'api'];
+
+	await db.handleBlacklist.createMany({ data: baseBlacklist.map((handle) => ({ handle })) });
 };
 
 const createUsers = async (db: PrismaClient): Promise<User[]> => {
@@ -31,6 +44,7 @@ const createUsers = async (db: PrismaClient): Promise<User[]> => {
 		data: {
 			id: generateIdFromEntropySize(10),
 			email: 'demo@mail.com',
+			emailVerified: true,
 			passwordHash:
 				'$argon2id$v=19$m=19456,t=2,p=1$3AbDA2BCtmZObHC+VFCukQ$PoRi2/772vZ6vOT4b6daKMBom+AXp3z7Xa5LVIESRbw',
 			profile: {
@@ -52,6 +66,7 @@ const createUsers = async (db: PrismaClient): Promise<User[]> => {
 			email: 'admin@mail.com',
 			passwordHash:
 				'$argon2id$v=19$m=19456,t=2,p=1$3AbDA2BCtmZObHC+VFCukQ$PoRi2/772vZ6vOT4b6daKMBom+AXp3z7Xa5LVIESRbw',
+			emailVerified: true,
 			profile: {
 				create: {
 					displayName: 'Admin',
@@ -78,6 +93,7 @@ const createUsers = async (db: PrismaClient): Promise<User[]> => {
 				email,
 				passwordHash:
 					'$argon2id$v=19$m=19456,t=2,p=1$3AbDA2BCtmZObHC+VFCukQ$PoRi2/772vZ6vOT4b6daKMBom+AXp3z7Xa5LVIESRbw',
+				emailVerified: true,
 				profile: {
 					create: {
 						displayName: firstName + Math.floor(Math.random() * 99).toString(),
@@ -95,40 +111,38 @@ const createUsers = async (db: PrismaClient): Promise<User[]> => {
 	return users;
 };
 
-const seedPosts = async (db: PrismaClient, users: User[]): Promise<Post[]> => {
-	const posts: Post[] = [];
+const seedTwiddles = async (db: PrismaClient, users: User[]): Promise<Twiddle[]> => {
+	const twiddles: Twiddle[] = [];
 
-	const getContent = (retries = 0, maxRetries = 8): string => {
-		const content = getRandomInArray(mock['posts']);
+	const getContent = (retries = 0, maxRetries = 5): string => {
+		const content = getRandomInArray(mock['twiddles']);
 		if (retries >= maxRetries) return content;
 
-		const contentAlreadyUsed = posts.some((post) => post.content === content);
+		const contentAlreadyUsed = twiddles.some((twiddle) => twiddle.content === content);
 		return contentAlreadyUsed ? getContent(retries + 1) : content;
 	};
 
 	for (const user of users) {
-		const numberOfPosts = Math.floor(Math.random() * 5) + 2; // between 2 and 6 posts
-		for (let i = 0; i < numberOfPosts; i++) {
+		const numberOfTwiddles = Math.floor(Math.random() * 8) + 3; // between 3 and 9 twiddles
+		for (let i = 0; i < numberOfTwiddles; i++) {
 			const content = getContent();
-			const createdAt = new Date();
-			createdAt.setDate(-Math.floor(Math.random() * 14) + createdAt.getDate()); // past fourteen days
-			createdAt.setHours(Math.floor(Math.random() * 24)); // randomize hours
-			createdAt.setMinutes(Math.floor(Math.random() * 60)); // randomize minutes
+			const createdAt = getRandomDateBetweenNowAndThen(14);
 
-			const post = await db.post.create({
+			const twiddle = await db.twiddle.create({
 				data: {
 					id: nanoid(),
 					content,
 					authorId: user.id,
 					createdAt,
-					edited: Math.random() > 0.9 // 10% chance to be an edited post
+					editedAt: Math.random() > 0.9 ? getRandomDateBetweenNowAndThen(14) : null, // 10% chance to be an edited twiddle
+					deletedAt: Math.random() > 0.95 ? getRandomDateBetweenNowAndThen(14) : null // 5% chance to be a deleted twiddle
 				}
 			});
-			posts.push(post);
+			twiddles.push(twiddle);
 		}
 	}
 
-	return posts;
+	return twiddles;
 };
 
 const main = async () => {
@@ -136,8 +150,9 @@ const main = async () => {
 
 	await emptyTables(db);
 
+	await seedHandleBlacklist(db);
 	const users = await createUsers(db);
-	await seedPosts(db, users);
+	await seedTwiddles(db, users);
 };
 
 main();

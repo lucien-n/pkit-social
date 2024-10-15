@@ -1,9 +1,20 @@
 import { dev } from '$app/environment';
 import { route } from '$lib/ROUTES';
+import { otpSchema } from '$lib/schemas/auth/otp';
 import { signInSchema } from '$lib/schemas/auth/sign-in';
 import { signUpSchema } from '$lib/schemas/auth/sign-up';
-import { signInWithEmailAndPassword, signUpWithEmailAndPassword } from '$lib/server/auth';
+import {
+	createSession,
+	generateEmailVerificationCode,
+	isAuthenticated,
+	isVerified,
+	signInWithEmailAndPassword,
+	signUpWithEmailAndPassword,
+	verifyVerificationCode
+} from '$lib/server/auth';
+import { sendOTPVerificationEmail } from '$lib/server/email';
 import { lucia } from '$lib/server/lucia';
+import { prisma } from '$lib/server/prisma';
 import { AuthError, AuthErrorCode } from '$lib/utils/auth-error';
 import { error, fail, redirect, type Action } from '@sveltejs/kit';
 import { superValidate, setError } from 'sveltekit-superforms';
@@ -75,7 +86,7 @@ export const signUp: Action = async (event) => {
 		}
 	}
 
-	redirect(302, route('/'));
+	redirect(302, route('/verify'));
 };
 
 export const signOut: Action = async (event) => {
@@ -92,4 +103,71 @@ export const signOut: Action = async (event) => {
 	});
 
 	return redirect(302, route('/'));
+};
+
+export const otpVerification: Action = async (event) => {
+	if (!event.locals.session || !event.locals.user) {
+		return redirect(302, route('/'));
+	}
+
+	const otpForm = await superValidate(event, zod(otpSchema));
+	if (!otpForm.valid) {
+		return fail(400, {
+			otpForm
+		});
+	}
+
+	const { otp } = otpForm.data;
+	const validCode = await verifyVerificationCode(event.locals.user, otp);
+	if (!validCode) {
+		return setError(otpForm, 'Invalid code');
+	}
+
+	await lucia.invalidateSession(event.locals.session.id);
+	await prisma.user.update({
+		data: { emailVerified: true },
+		where: { id: event.locals.session.userId }
+	});
+
+	await createSession(event.locals.session.userId, event);
+
+	return redirect(302, route('/'));
+};
+
+export const sendOtpEmail: Action = async (event) => {
+	if (isVerified(event) || !isAuthenticated(event)) {
+		return redirect(302, route('/'));
+	}
+
+	try {
+		const email = event.locals.user.email;
+		const code = await generateEmailVerificationCode(event.locals.session.userId, email);
+		await sendOTPVerificationEmail(code, { email, name: event.locals.profile.displayName });
+	} catch (e) {
+		if (dev) console.error(e);
+
+		throw new Error('An unexpected error occured');
+	}
+};
+
+export const deleteAccount: Action = async (event) => {
+	if (!isAuthenticated(event)) {
+		return redirect(302, route('/'));
+	}
+
+	try {
+		await prisma.user.update({
+			data: { deletedAt: new Date() },
+			where: { id: event.locals.session.userId, deletedAt: null },
+			select: {
+				id: true // EMPTY SELECT
+			}
+		});
+	} catch (e) {
+		if (dev) console.error(e);
+
+		throw new Error('An unexpected error occured');
+	}
+
+	await signOut(event);
 };
